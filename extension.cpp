@@ -210,7 +210,7 @@ void VScript::OnCoreMapEnd()
 
 bool VScript::SDK_OnLoad(char* error, size_t maxlength, bool late)
 {
-    if (!gameconfs->LoadGameConfigFile("vscripts.games", &g_pGameConf, error, maxlength))
+    if (!gameconfs->LoadGameConfigFile("vscript.games", &g_pGameConf, error, maxlength))
         return false;
 
     if (!g_pGameConf->GetAddress("CCSGameRules::RegisterScriptFunctions", &g_pCSGameRulesFn) || !g_pCSGameRulesFn)
