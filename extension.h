@@ -33,9 +33,14 @@ private:
 public:
     // functions
     int GetHammerID();
+    int GetUserID();
+    const char* GetSteamID();
     bool IsAdmin();
     void PrintToChat(const char* message);
     void PrintToHint(const char* message);
+
+private:
+    bool m_bLoaded;
 };
 
 #define HUD_PRINTNOTIFY   1

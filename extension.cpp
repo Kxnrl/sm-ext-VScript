@@ -5,6 +5,7 @@
 //#define DEBUG
 
 #define VSCRIPT_GLOBAL_PTR_HACK "__VSCRIPT_HACK"
+#define VSCRIPT_GLOBAL_VER_HACK SMEXT_CONF_VERSION
 
 
 VScript g_Extension;
@@ -67,6 +68,7 @@ void VScript::Hook_OnRegisterFunction(ScriptFunctionBinding_t* pFunction)
 #ifdef DEBUG
     smutils->LogMessage(myself, "g_pScriptVM->RegisterFunction(%s)", pFunction->m_desc.m_pszFunction);
 #endif
+    RETURN_META(MRES_IGNORED);
 }
 
 bool VScript::Hook_OnRegisterClass(ScriptClassDesc_t* pClass)
@@ -195,6 +197,45 @@ void VScript::PrintToChat(const char* message)
     gamehelpers->TextMsg(index, HUD_PRINTTALK, message);
 }
 
+int VScript::GetUserID()
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(false);
+
+    const int index = gamehelpers->EntityToBCompatRef(pEntity);
+    IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
+    if (!pPlayer || !pPlayer->IsInGame() || pPlayer->IsFakeClient())
+    {
+        char error[128];
+        smutils->Format(error, 128, "Player %d is invalid.", index);
+        g_pScriptVM->RaiseException(error);
+        return -1;
+    }
+
+    return pPlayer->GetUserId();
+}
+
+const char* VScript::GetSteamID()
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(false);
+
+    char steamid[20];
+
+    const int index = gamehelpers->EntityToBCompatRef(pEntity);
+    IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
+    if (!pPlayer || !pPlayer->IsInGame() || pPlayer->IsFakeClient())
+    {
+        char error[128];
+        smutils->Format(error, 128, "Player %d is invalid.", index);
+        g_pScriptVM->RaiseException(error);
+        return steamid;
+    }
+
+    smutils->Format(steamid, sizeof(steamid), "%" PRIu64, pPlayer->GetSteamId64());
+    return steamid;
+}
+
 void VScript::OnCoreMapStart(edict_t* pEdictList, int edictCount, int clientMax)
 {
     LoadScriptVM();
@@ -206,6 +247,7 @@ void VScript::OnCoreMapEnd()
     g_pCBaseEntity = nullptr;
     g_pCBasePlayer = nullptr;
     g_pScriptVM = nullptr;
+    m_bLoaded = false;
 }
 
 bool VScript::SDK_OnLoad(char* error, size_t maxlength, bool late)
@@ -241,12 +283,9 @@ bool VScript::SDK_OnLoad(char* error, size_t maxlength, bool late)
     g_pShareSys->RegisterLibrary(myself, "VScripts");
     g_pShareSys->AddNatives(myself, g_Natives);
 
-    // late
-    if (late)
-    {
-        LoadScriptVM();
-        InitRoutines(__FUNCTION__);
-    }
+#ifdef DEBUG
+    smutils->LogMessage(myself, "SDK_OnLoad.");
+#endif
 
     return true;
 }
@@ -279,10 +318,13 @@ bool VScript::SDK_OnMetamodLoad(ISmmAPI* ismm, char* error, size_t maxlen, bool 
     GET_V_IFACE_ANY(GetEngineFactory, sm, IScriptManager, VSCRIPT_INTERFACE_VERSION);
     IScriptVM* vm = sm->CreateVM();
     Assert(vm);
-    g_RegFuntions = SH_ADD_VPHOOK(IScriptVM, RegisterFunction, vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterFunction), true);
+    g_RegFuntions = SH_ADD_VPHOOK(IScriptVM, RegisterFunction, vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterFunction), false);
     g_RegVClasses = SH_ADD_VPHOOK(IScriptVM, RegisterClass,    vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterClass),    false);
     sm->DestroyVM(vm);
 
+#ifdef DEBUG
+    Msg("Hooked VM.\n");
+#endif
     return true;
 }
 
@@ -294,7 +336,9 @@ void VScript::LoadScriptVM()
         Error("Could not load g_pScriptVM offset.");
     }
 
+    // FIXME we need to find a better way
     // DO NOT USE META_IFACEPTR(IScriptVM) !!!
+    // because we use VP hook
     g_pScriptVM = **(IScriptVM***)((char*)g_pCSGameRulesFn + offset);
 
     Assert(g_pScriptVM);
@@ -302,28 +346,51 @@ void VScript::LoadScriptVM()
 #ifdef DEBUG
     smutils->LogMessage(myself, "g_pScriptVM = %x | Language = %s", reinterpret_cast<cell_t>(g_pScriptVM), g_pScriptVM->GetLanguageName());
 #endif
+
+    ScriptVariant_t var(VSCRIPT_GLOBAL_VER_HACK);
+    g_pScriptVM->SetValue("__VScript_Extension", var);
 }
 
 void VScript::InjectCBaseEntityFunctions(ScriptClassDesc_t* pClass)
 {
+    static bool bInjected = false;
+    if (bInjected)
+        return;
+
+    bInjected = true;
+
     ScriptRegisterCBaseEntityFunction(pClass, "GetHammerID", VScript::GetHammerID, "Get entity hammer id.");
 }
 
 void VScript::InjectCBasePlayerFunctions(ScriptClassDesc_t* pClass)
 {
+    static bool bInjected = false;
+    if (bInjected)
+        return;
+
+    bInjected = true;
+
+    // once inject to pClass
+    // pClass not destroy on map end
+
     InjectScriptFunctionToClass(pClass, PrintToChat, "Print to Chat.");
     InjectScriptFunctionToClass(pClass, PrintToHint, "Print to Hint.");
     InjectScriptFunctionToClass(pClass, IsAdmin, "Check player is admin.");
-    //ScriptAddFunctionToClassDesc(pClass, VScript, IsAdmin, "Check player is admin.");
-    //ScriptRegisterCBaseEntityFunction(pClass, "IsAdmin", VScript::IsAdmin, "Check player is admin.");
+    InjectScriptFunctionToClass(pClass, GetUserID, "Get UserId for player.");
+    InjectScriptFunctionToClass(pClass, GetSteamID, "Get SteamID64 for player.");
 }
 
 void VScript::InitRoutines(const char* func)
 {
+    if (g_pScriptVM == nullptr || m_bLoaded)
+        return;
+
     smutils->LogMessage(myself, "InitRoutines(%s)", func);
 
     // inject global functions
     ScriptRegisterFunction(g_pScriptVM, VScriptGetAdminPlayer, "Get Admin Player as Entity.");
+
+    m_bLoaded = true;
 }
 
 static cell_t Native_GetScopeValue(IPluginContext* pContext, const cell_t* params)
