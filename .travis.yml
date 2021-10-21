@@ -19,14 +19,15 @@ jobs:
     script:
       - ./build.bat
   - name: Linux
-    dist: bionic
+    dist: focal
     python: 3.7
-    # TODO: Default compiler is clang10 aka: clang => clang-10
+    compiler: clang
     addons:
       apt:
         sources:
           - ubuntu-toolchain-r-test
-        packages: ['clang-10', 'clang++-10']
+        packages:
+          - clang-10.0
     env:
       - CC=clang-10
       - CXX=clang++-10
