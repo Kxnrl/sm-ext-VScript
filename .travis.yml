@@ -1,9 +1,6 @@
 language: cpp
 
 jobs:
-  fast_finish: true
-  allow_failures:
-  - name: Linux
   include:
   - name: Windows
     os: windows
@@ -25,7 +22,7 @@ jobs:
     addons:
       apt:
         sources:
-          - llvm-toolchain-focal
+          - llvm-toolchain-focal-10.0
           - ubuntu-toolchain-r-test
         packages:
           - clang-10
