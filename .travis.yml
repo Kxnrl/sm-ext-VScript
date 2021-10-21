@@ -21,12 +21,15 @@ jobs:
   - name: Linux
     dist: bionic
     python: 3.7
+    # TODO: Default compiler is clang10 aka: clang => clang-10
     addons:
       apt:
-        packages: ['clang-10']
+        sources:
+          - ubuntu-toolchain-r-test
+        packages: ['clang-10', 'clang++-10']
     env:
-      - CC=clang
-      - CXX=clang++
+      - CC=clang-10
+      - CXX=clang++-10
       - SMBRANCH=1.10-dev
       - MMBRANCH=1.11-dev
     before_script:
