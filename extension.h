@@ -2,7 +2,7 @@
 #define _INCLUDE_SOURCEMOD_EXTENSION_PROPER_H_
 
 #include "ivscript_hack.h"
-
+#include "itoolentity.h"
 #include "smsdk_ext.h"
 
 class VScript : public SDKExtension
@@ -49,5 +49,6 @@ private:
 #define HUD_PRINTCENTER   4
 
 extern sp_nativeinfo_t g_Natives[];
+extern IServerTools* servertools;
 
 #endif

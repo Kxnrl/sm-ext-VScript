@@ -23,6 +23,9 @@
     <ClCompile Include="..\..\..\Extension\sourcemod\sourcemod-1.10\public\smsdk_ext.cpp">
       <Filter>Source Files\SDK</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\extension.h">
@@ -41,6 +44,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ivscript_hack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

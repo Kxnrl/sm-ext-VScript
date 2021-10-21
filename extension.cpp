@@ -1,10 +1,10 @@
 #include "extension.h"
 #include "ivscript_hack.h"
+#include "itoolentity.h"
+#include "utils.h"
 
 #define DBGFLAG_ASSERT
 //#define DEBUG
-
-#define VSCRIPT_GLOBAL_VER_HACK SMEXT_CONF_VERSION
 
 VScript g_Extension;
 SMEXT_LINK(&g_Extension);
@@ -12,13 +12,14 @@ SMEXT_LINK(&g_Extension);
 void* g_pCSGameRulesFn = nullptr;
 IScriptVM* g_pScriptVM = nullptr;
 CGlobalVars* g_pGlobals = nullptr;
+IServerTools* servertools;
 IGameConfig* g_pGameConf = nullptr;
 ScriptClassDesc_t* g_pCBaseEntity = nullptr;
 ScriptClassDesc_t* g_pCBasePlayer = nullptr;
 cell_t g_RegFuntions;
 cell_t g_RegVClasses;
 
-ScriptVariant_t g_ScriptVariant(VSCRIPT_GLOBAL_VER_HACK);
+ScriptVariant_t g_ScriptVariant(SMEXT_CONF_VERSION);
 CBaseEntity* g_pVScriptClassFuncPtr;
 
 #ifdef PLATFORM_WINDOWS
@@ -38,29 +39,14 @@ SH_DECL_HOOK1(IScriptVM, RegisterClass, SH_NOATTRIB, 0, bool, ScriptClassDesc_t*
 
 // def
 #define InjectScriptFunctionToClass(pDesc, func, description) ScriptAddFunctionToClassDesc(pDesc, VScript, func, description)
-#define ScriptRegisterCBaseEntityFunction(class, script, func, desc) do\
-{\
-    Assert(class);\
-    ScriptFunctionBinding_t* pBinding = &((class)->m_FunctionBindings[(class)->m_FunctionBindings.AddToTail()]);\
-    pBinding->m_desc.m_pszDescription = desc;\
-    pBinding->m_desc.m_pszScriptName = script;\
-    pBinding->m_desc.m_pszFunction = script;\
-    ScriptDeduceFunctionSignature(&pBinding->m_desc, (VScript*)(0), &func);\
-    pBinding->m_pfnBinding = ScriptCreateBinding(((VScript*)0), &func);\
-    pBinding->m_pFunction = ScriptConvertFuncPtrToVoid(&func);\
-    pBinding->m_flags = SF_MEMBER_FUNC;\
-} while (0)
-
-
 #define EntityToHScript(pEntity) pEntity ? g_pGetScriptInstance(pEntity) : nullptr
 #define HScriptToCBaseEntity(hScript) hScript ? (CBaseEntity*)g_pScriptVM->GetInstanceValue(hScript, g_pCBaseEntity) : nullptr
 #define VSCRIPT_PTR() g_pVScriptClassFuncPtr
-
 #define VALIDATE_ENTITY_VOID()  do { if (!pEntity) { g_pScriptVM->RaiseException("Accessed null instance"); return;   } } while (0)
 #define VALIDATE_ENTITY_RET(t)  do { if (!pEntity) { g_pScriptVM->RaiseException("Accessed null instance"); return t; } } while (0)
-
 #define VALIDATE_SCRIPT_SCOPE(e) g_pValidateScriptScope(e)
 #define GET_ENTITY_SCRIPT_SCOPE(e)  *(CScriptScope*)((char*)pEntity + 860) //g_pGetScriptInstance(e)
+
 
 void VScript::Hook_OnRegisterFunction(ScriptFunctionBinding_t* pFunction)
 {
@@ -217,9 +203,7 @@ int VScript::GetUserID()
 const char* VScript::GetSteamID()
 {
     CBaseEntity* pEntity = VSCRIPT_PTR();
-    VALIDATE_ENTITY_RET(false);
-
-    char steamid[20];
+    VALIDATE_ENTITY_RET(nullptr);
 
     const int index = gamehelpers->EntityToBCompatRef(pEntity);
     IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
@@ -228,11 +212,13 @@ const char* VScript::GetSteamID()
         char error[128];
         smutils->Format(error, 128, "Player %d is invalid.", index);
         g_pScriptVM->RaiseException(error);
-        return steamid;
+        return nullptr;
     }
 
+    char steamid[20];
     smutils->Format(steamid, sizeof(steamid), "%" PRIu64, pPlayer->GetSteamId64());
-    return steamid;
+
+    return STRING(AllocPooledString(steamid));
 }
 
 void VScript::OnCoreMapStart(edict_t* pEdictList, int edictCount, int clientMax)
@@ -313,6 +299,8 @@ bool VScript::SDK_OnMetamodLoad(ISmmAPI* ismm, char* error, size_t maxlen, bool 
 {
     g_pGlobals = ismm->GetCGlobals();
 
+    GET_V_IFACE_ANY(GetServerFactory, servertools, IServerTools, VSERVERTOOLS_INTERFACE_VERSION);
+
     IScriptManager* sm;
     GET_V_IFACE_ANY(GetEngineFactory, sm, IScriptManager, VSCRIPT_INTERFACE_VERSION);
     IScriptVM* vm = sm->CreateVM();
@@ -346,8 +334,7 @@ void VScript::LoadScriptVM()
     smutils->LogMessage(myself, "g_pScriptVM = %x | Language = %s", reinterpret_cast<cell_t>(g_pScriptVM), g_pScriptVM->GetLanguageName());
 #endif
 
-    ScriptVariant_t var(VSCRIPT_GLOBAL_VER_HACK);
-    g_pScriptVM->SetValue("__VScript_Extension", var);
+    g_pScriptVM->SetValue("__VScript_Extension", g_ScriptVariant);
 }
 
 void VScript::InjectCBaseEntityFunctions(ScriptClassDesc_t* pClass)
@@ -358,7 +345,7 @@ void VScript::InjectCBaseEntityFunctions(ScriptClassDesc_t* pClass)
 
     bInjected = true;
 
-    ScriptRegisterCBaseEntityFunction(pClass, "GetHammerID", VScript::GetHammerID, "Get entity hammer id.");
+    InjectScriptFunctionToClass(pClass, GetHammerID, "Get entity hammer id.");
 }
 
 void VScript::InjectCBasePlayerFunctions(ScriptClassDesc_t* pClass)
@@ -392,29 +379,34 @@ void VScript::InitRoutines(const char* func)
     m_bLoaded = true;
 }
 
-static cell_t Native_GetScopeValue(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_GetValue(IPluginContext* pContext, const cell_t* params)
 {
-    CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
-    if (!pEntity)
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
     {
-        return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
     }
 
     char* key;
     pContext->LocalToString(params[2], &key);
 
-    void* hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
-
-    if (hScript == INVALID_HSCRIPT)
-    {
-        if (!VALIDATE_SCRIPT_SCOPE(pEntity))
-        {
-            return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
-        }
-    }
-
     ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue((HSCRIPT)hScript, key, &var))
+    if (!g_pScriptVM->GetValue(hScript ? (HSCRIPT)hScript : nullptr, key, &var))
     {
         return pContext->ThrowNativeError("Failed to get script key value for entity %d.", params[1]);
     }
@@ -437,37 +429,41 @@ static cell_t Native_GetScopeValue(IPluginContext* pContext, const cell_t* param
     case FIELD_CHARACTER:
         return var.m_char;
     case FIELD_HSCRIPT:
-        HSCRIPT result = var.m_hScript;
-        pEntity = HScriptToCBaseEntity(result);
-        return pEntity ? gamehelpers->EntityToBCompatRef(pEntity) : -1;
+        CBaseEntity* result = HScriptToCBaseEntity(var.m_hScript);
+        return result ? gamehelpers->EntityToBCompatRef(result) : -1;
     }
 
     return pContext->ThrowNativeError("Error variantType %d", var.m_type);
 }
 
-static cell_t Native_GetScopeValueString(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_GetValueString(IPluginContext* pContext, const cell_t* params)
 {
-    CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
-    if (!pEntity)
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
     {
-        return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
     }
 
     char* key;
     pContext->LocalToString(params[2], &key);
 
-    void* hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
-
-    if (hScript == INVALID_HSCRIPT)
-    {
-        if (!VALIDATE_SCRIPT_SCOPE(pEntity))
-        {
-            return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
-        }
-    }
-
     ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue((HSCRIPT)hScript, key, &var))
+    if (!g_pScriptVM->GetValue(hScript ? (HSCRIPT)hScript : nullptr, key, &var))
     {
         return pContext->ThrowNativeError("Failed to get script key value for entity %d.", params[1]);
     }
@@ -481,29 +477,34 @@ static cell_t Native_GetScopeValueString(IPluginContext* pContext, const cell_t*
     return pContext->StringToLocalUTF8(params[3], params[4], var.m_pszString, &bytes);
 }
 
-static cell_t Native_GetScopeValueVector(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_GetValueVector(IPluginContext* pContext, const cell_t* params)
 {
-    CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
-    if (!pEntity)
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
     {
-        return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
     }
 
     char* key;
     pContext->LocalToString(params[2], &key);
 
-    void* hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
-
-    if (hScript == INVALID_HSCRIPT)
-    {
-        if (!VALIDATE_SCRIPT_SCOPE(pEntity))
-        {
-            return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
-        }
-    }
-
     ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue((HSCRIPT)hScript, key, &var))
+    if (!g_pScriptVM->GetValue(hScript ? (HSCRIPT)hScript : nullptr, key, &var))
     {
         return pContext->ThrowNativeError("Failed to get script key value for entity %d.", params[1]);
     }
@@ -523,104 +524,197 @@ static cell_t Native_GetScopeValueVector(IPluginContext* pContext, const cell_t*
     return 1;
 }
 
-static cell_t Native_GetGlobalValue(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_SetValue(IPluginContext* pContext, const cell_t* params)
 {
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
+    {
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
+    }
+
     char* key;
-    pContext->LocalToString(params[1], &key);
+    pContext->LocalToString(params[2], &key);
+
+    
+
+    _fieldtypes type = (_fieldtypes)params[3];
 
     ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue(key, &var))
-    {
-        return pContext->ThrowNativeError("Failed to get global key value for key %s.", key);
-    }
-
-    _fieldtypes type = (_fieldtypes)params[2];
-
-    if (type != var.m_type)
-    {
-        return pContext->ThrowNativeError("Value type not match paramType = %d | variantType = %d", type, var.m_type);
-    }
 
     switch (type)
     {
     case FIELD_BOOLEAN:
-        return var.m_bool;
+        var.m_bool = !!params[4];
+        var.m_type = FIELD_BOOLEAN;
+        break;
     case FIELD_FLOAT:
-        return sp_ftoc(var.m_float);
+        var.m_float = sp_ctof(params[4]);
+        var.m_type = FIELD_FLOAT;
+        break;
     case FIELD_INTEGER:
-        return var.m_int;
+        var.m_int = params[4];
+        var.m_type = FIELD_INTEGER;
+        break;
     case FIELD_CHARACTER:
-        return var.m_char;
+        var.m_char = (char)params[4];
+        var.m_type = FIELD_CHARACTER;
+        break;
     case FIELD_HSCRIPT:
-        HSCRIPT result = var.m_hScript;
-        CBaseEntity* pEntity = HScriptToCBaseEntity(result);
-        return pEntity ? gamehelpers->EntityToBCompatRef(pEntity) : -1;
+        if (params[4] == -1)
+        {
+            // nothing...
+            var.m_hScript = nullptr;
+        }
+        else
+        {
+            CBaseEntity* result = gamehelpers->ReferenceToEntity(params[4]);
+            if (!result)
+                return pContext->ThrowNativeError("Entity %d is invalid.", params[4]);
+            var.m_hScript = EntityToHScript(result);
+        }
+        var.m_type = FIELD_HSCRIPT;
+        break;
+    default:
+        return pContext->ThrowNativeError("Error variantType %d", type);
     }
 
-    return pContext->ThrowNativeError("Error variantType %d", var.m_type);
+    // clear before
+    g_pScriptVM->ClearValue(hScript ? (HSCRIPT)hScript : nullptr, key);
+    return g_pScriptVM->SetValue(hScript ? (HSCRIPT)hScript : nullptr, key, var);
 }
 
-static cell_t Native_GetGlobalValueString(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_SetValueString(IPluginContext* pContext, const cell_t* params)
 {
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
+    {
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
+    }
+
     char* key;
-    pContext->LocalToString(params[1], &key);
+    pContext->LocalToString(params[2], &key);
 
-    ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue(key, &var))
-    {
-        return pContext->ThrowNativeError("Failed to get global key value for key %s.", key);
-    }
+    char* value;
+    pContext->LocalToString(params[3], &value);
 
-    if (var.m_type != FIELD_CSTRING)
-    {
-        return pContext->ThrowNativeError("Value type not match variantType = %d", var.m_type);
-    }
+    const char* pooledString = STRING(AllocPooledString(value));
 
-    size_t bytes;
-    return pContext->StringToLocalUTF8(params[3], params[4], var.m_pszString, &bytes);
+    // clear before
+    g_pScriptVM->ClearValue(hScript ? (HSCRIPT)hScript : nullptr, key);
+
+    ScriptVariant_t var(pooledString);
+    return g_pScriptVM->SetValue(hScript ? (HSCRIPT)hScript : nullptr, key, var);
 }
 
-static cell_t Native_GetGlobalValueVector(IPluginContext* pContext, const cell_t* params)
+static cell_t Native_SetValueVector(IPluginContext* pContext, const cell_t* params)
 {
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
+    {
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
+    }
+
     char* key;
-    pContext->LocalToString(params[1], &key);
-
-    ScriptVariant_t var;
-    if (!g_pScriptVM->GetValue(key, &var))
-    {
-        return pContext->ThrowNativeError("Failed to get global key value for key %s.", key);
-    }
-
-    if (var.m_type != FIELD_VECTOR)
-    {
-        return pContext->ThrowNativeError("Value type not match variantType = %d", var.m_type);
-    }
+    pContext->LocalToString(params[2], &key);
 
     cell_t* pVec;
     pContext->LocalToPhysAddr(params[3], &pVec);
 
-    pVec[0] = sp_ftoc(var.m_pVector->x);
-    pVec[1] = sp_ftoc(var.m_pVector->y);
-    pVec[2] = sp_ftoc(var.m_pVector->z);
+    Vector vec(sp_ctof(pVec[0]), sp_ctof(pVec[1]), sp_ctof(pVec[2]));
 
-    return 1;
+    // clear before
+    g_pScriptVM->ClearValue(hScript ? (HSCRIPT)hScript : nullptr, key);
+
+    ScriptVariant_t var(vec);
+    return g_pScriptVM->SetValue(hScript ? (HSCRIPT)hScript : nullptr, key, var);
+}
+
+static cell_t Native_ClearValue(IPluginContext* pContext, const cell_t* params)
+{
+    void* hScript = nullptr;
+
+    if (params[1] != -1)
+    {
+        CBaseEntity* pEntity = gamehelpers->ReferenceToEntity(params[1]);
+        if (!pEntity)
+        {
+            return pContext->ThrowNativeError("Entity %d is invalid", params[1]);
+        }
+
+        hScript = GET_ENTITY_SCRIPT_SCOPE(pEntity);
+
+        if (hScript == INVALID_HSCRIPT)
+        {
+            if (!VALIDATE_SCRIPT_SCOPE(pEntity))
+            {
+                return pContext->ThrowNativeError("Entity %d has not script scope.", params[1]);
+            }
+        }
+    }
+
+    char* key;
+    pContext->LocalToString(params[2], &key);
+
+    return g_pScriptVM->ClearValue(hScript ? (HSCRIPT)hScript : nullptr, key);
 }
 
 sp_nativeinfo_t g_Natives[] =
 {
-    // why not use -1 for global value?
-    {"VScript_GetScopeValue",        Native_GetScopeValue},
-    {"VScript_GetScopeValueString",  Native_GetScopeValueString},
-    {"VScript_GetScopeValueVector",  Native_GetScopeValueVector},
+    // use -1 for global value
+    {"VScript_GetValue",         Native_GetValue},
+    {"VScript_GetValueString",   Native_GetValueString},
+    {"VScript_GetValueVector",   Native_GetValueVector},
 
-    {"VScript_GetGlobalValue",        Native_GetGlobalValue},
-    {"VScript_GetGlobalValueString",  Native_GetGlobalValueString},
-    {"VScript_GetGlobalValueVector",  Native_GetGlobalValueVector},
+    {"VScript_SetValue",         Native_SetValue},
+    {"VScript_SetValueString",   Native_SetValueString},
+    {"VScript_SetValueVector",   Native_SetValueVector},
 
-    // todo
-    // add set value
-    // set requires g_pScriptVM->ClearValue
-    // ...
+    {"VScript_ClearValue",       Native_ClearValue},
 
     {nullptr, nullptr}
 };

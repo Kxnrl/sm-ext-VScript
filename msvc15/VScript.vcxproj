@@ -38,7 +38,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>..;$(METAMOD)\core;$(METAMOD)\core\sourcehook;$(SOURCEMOD)\core;$(SOURCEMOD)\public;$(SOURCEMOD)\public\amtl\amtl;$(SOURCEMOD)\public\amtl;$(SOURCEMOD)\sourcepawn\include;$(SOURCEMOD)\public\extensions;$(HL2SDK-CSGO)\game\shared;$(HL2SDK-CSGO)\public;$(HL2SDK-CSGO)\public\tier0;$(HL2SDK-CSGO)\public\tier1;$(HL2SDK-CSGO)\public\engine;$(HL2SDK-CSGO)\public\vstdlib;$(HL2SDK-CSGO)\public\game\server;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;$(METAMOD)\core;$(METAMOD)\core\sourcehook;$(SOURCEMOD)\core;$(SOURCEMOD)\public;$(SOURCEMOD)\public\amtl\amtl;$(SOURCEMOD)\public\amtl;$(SOURCEMOD)\sourcepawn\include;$(SOURCEMOD)\public\extensions;$(HL2SDK-CSGO)\game\shared;$(HL2SDK-CSGO)\public;$(HL2SDK-CSGO)\public\tier0;$(HL2SDK-CSGO)\public\tier1;$(HL2SDK-CSGO)\public\engine;$(HL2SDK-CSGO)\public\vstdlib;$(HL2SDK-CSGO)\public\game\server;$(HL2SDK-CSGO)\public\toolframework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SDK_EXPORTS;_CRT_SECURE_NO_DEPRECATE;SOURCEMOD_BUILD;_CRT_NONSTDC_NO_DEPRECATE;SOURCE_ENGINE=12;COMPILER_MSVC;COMPILER_MSVC32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -68,6 +68,7 @@
   <ItemGroup>
     <ClCompile Include="..\extension.cpp" />
     <ClCompile Include="..\..\..\Extension\sourcemod\sourcemod-1.10\public\smsdk_ext.cpp" />
+    <ClCompile Include="..\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\chandle.h" />
@@ -75,6 +76,7 @@
     <ClInclude Include="..\ivscript_hack.h" />
     <ClInclude Include="..\smsdk_config.h" />
     <ClInclude Include="..\..\..\Extension\sourcemod\sourcemod-1.10\public\smsdk_ext.h" />
+    <ClInclude Include="..\utils.h" />
     <ClInclude Include="..\vscript_templates_hack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
