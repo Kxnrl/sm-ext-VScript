@@ -410,9 +410,9 @@ inline FUNCPTR_TYPE ScriptConvertFuncPtrFromVoid(ScriptFunctionBindingStorageTyp
 #define	SCRIPT_BINDING_ARGS_14 pArguments[0], pArguments[1], pArguments[2], pArguments[3], pArguments[4], pArguments[5], pArguments[6], pArguments[7], pArguments[8], pArguments[9], pArguments[10], pArguments[11], pArguments[12], pArguments[13]
 
 //extern IScriptVM* g_pScriptVM;
-#define VSCRIPT_GLOBAL_PTR_HACK "__VSCRIPT_HACK"
-#define VSCRIPT_SET_GLOBAL_PTR() HSCRIPT hScript = pContext ? g_pGetScriptInstance((CBaseEntity*)pContext) : nullptr; if (hScript) g_pScriptVM->SetValue(VSCRIPT_GLOBAL_PTR_HACK, hScript)
-#define VSCRIPT_CLR_GLOBAL_PTR() if (hScript) g_pScriptVM->ClearValue(VSCRIPT_GLOBAL_PTR_HACK)
+extern CBaseEntity* g_pVScriptClassFuncPtr;
+#define VSCRIPT_SET_GLOBAL_PTR() if (pContext) g_pVScriptClassFuncPtr = (CBaseEntity*)pContext;
+#define VSCRIPT_CLR_GLOBAL_PTR() g_pVScriptClassFuncPtr = nullptr
 
 #define DEFINE_SCRIPT_BINDINGS(N) \
 	template <typename FUNC_TYPE, typename FUNCTION_RETTYPE FUNC_TEMPLATE_FUNC_PARAMS_##N> \

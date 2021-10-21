@@ -4,9 +4,7 @@
 #define DBGFLAG_ASSERT
 //#define DEBUG
 
-#define VSCRIPT_GLOBAL_PTR_HACK "__VSCRIPT_HACK"
 #define VSCRIPT_GLOBAL_VER_HACK SMEXT_CONF_VERSION
-
 
 VScript g_Extension;
 SMEXT_LINK(&g_Extension);
@@ -20,7 +18,8 @@ ScriptClassDesc_t* g_pCBasePlayer = nullptr;
 cell_t g_RegFuntions;
 cell_t g_RegVClasses;
 
-ScriptVariant_t g_ScriptVariant;
+ScriptVariant_t g_ScriptVariant(VSCRIPT_GLOBAL_VER_HACK);
+CBaseEntity* g_pVScriptClassFuncPtr;
 
 #ifdef PLATFORM_WINDOWS
 static HSCRIPT(__fastcall* g_pGetScriptInstance)(CBaseEntity* entity) = nullptr;
@@ -55,7 +54,7 @@ SH_DECL_HOOK1(IScriptVM, RegisterClass, SH_NOATTRIB, 0, bool, ScriptClassDesc_t*
 
 #define EntityToHScript(pEntity) pEntity ? g_pGetScriptInstance(pEntity) : nullptr
 #define HScriptToCBaseEntity(hScript) hScript ? (CBaseEntity*)g_pScriptVM->GetInstanceValue(hScript, g_pCBaseEntity) : nullptr
-#define VSCRIPT_PTR() g_pScriptVM->GetValue("__VSCRIPT_HACK", &g_ScriptVariant) ? HScriptToCBaseEntity(g_ScriptVariant.m_hScript) : nullptr
+#define VSCRIPT_PTR() g_pVScriptClassFuncPtr
 
 #define VALIDATE_ENTITY_VOID()  do { if (!pEntity) { g_pScriptVM->RaiseException("Accessed null instance"); return;   } } while (0)
 #define VALIDATE_ENTITY_RET(t)  do { if (!pEntity) { g_pScriptVM->RaiseException("Accessed null instance"); return t; } } while (0)
@@ -427,7 +426,7 @@ static cell_t Native_GetScopeValue(IPluginContext* pContext, const cell_t* param
         return pContext->ThrowNativeError("Value type not match paramType = %d | variantType = %d", type, var.m_type);
     }
 
-    switch(type)
+    switch (type)
     {
     case FIELD_BOOLEAN:
         return var.m_bool;
