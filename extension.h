@@ -39,7 +39,7 @@ public:
     void PrintToChat(const char* message);
     void PrintToHint(const char* message);
 
-private:
+public:
     bool m_bLoaded;
 };
 

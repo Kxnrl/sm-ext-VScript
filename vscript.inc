@@ -5,14 +5,14 @@
 
 enum variant_t
 {
-	FIELD_VOID,
-	FIELD_FLOAT,
-	FIELD_STRING,
-	FIELD_VECTOR,
-	FIELD_INTEGER = 5,
-	FIELD_BOOLEAN,
-	FIELD_CHARACTER = 8,
-	FIELD_HSCRIPT = 33 // always use for CBaseEntity
+    FIELD_VOID,
+    FIELD_FLOAT,
+    FIELD_STRING,
+    FIELD_VECTOR,
+    FIELD_INTEGER = 5,
+    FIELD_BOOLEAN,
+    FIELD_CHARACTER = 8,
+    FIELD_HSCRIPT = 33 // always use for CBaseEntity
 }
 
 // use entity -1 for global scope
@@ -29,29 +29,31 @@ native bool VScript_ClearValue(int entity, const char[] key);
 
 public Extension __ext_VScript =
 {
-	name = "VScript",
-	file = "VScript.ext",
+    name = "VScript",
+    file = "VScript.ext",
 #if defined AUTOLOAD_EXTENSIONS
-	autoload = 1,
+    autoload = 1,
 #else
-	autoload = 0,
+    autoload = 0,
 #endif
 #if defined REQUIRE_EXTENSIONS
-	required = 1,
+    required = 1,
 #else
-	required = 0,
+    required = 0,
 #endif
 };
 
 #if !defined REQUIRE_EXTENSIONS
 public void __ext_VScript_SetNTVOptional()
 {
-    MarkNativeAsOptional("VScript_GetScopeValue");
-    MarkNativeAsOptional("VScript_GetScopeValueString");
-    MarkNativeAsOptional("VScript_GetScopeValueVector");
+    MarkNativeAsOptional("VScript_GetValue");
+    MarkNativeAsOptional("VScript_GetValueString");
+    MarkNativeAsOptional("VScript_GetValueVector");
 
-	MarkNativeAsOptional("VScript_GetGlobalValue");
-    MarkNativeAsOptional("VScript_GetGlobalValueString");
-    MarkNativeAsOptional("VScript_GetGlobalValueVector");
+    MarkNativeAsOptional("VScript_SetValue");
+    MarkNativeAsOptional("VScript_SetValueString");
+    MarkNativeAsOptional("VScript_SetValueVector");
+
+    MarkNativeAsOptional("VScript_ClearValue");
 }
 #endif
