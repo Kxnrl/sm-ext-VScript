@@ -23,7 +23,7 @@ git clone https://github.com/alliedmodders/hl2sdk --recursive --branch csgo --si
 #build
 mkdir -p "$EXT_DIR/build"
 pushd "$EXT_DIR/build"
-CC=clang CXX=clang++
+export CC=clang;export CXX=clang++;
 python "$EXT_DIR/configure.py" --enable-optimize --sm-path "$EXT_DIR/sourcemod" --mms-path "$EXT_DIR/metamod" --hl2sdk-root "$EXT_DIR" --sdks=csgo
 ambuild
 popd
