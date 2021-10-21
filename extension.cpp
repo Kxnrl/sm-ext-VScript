@@ -259,6 +259,7 @@ int VScript::GetDataInt(const char* prop)
     }
 
     VScriptRaiseException("Datamap '%s' -> Integer size %d is invalid.", prop, size);
+    return 0;
 }
 
 void VScript::SetDataInt(const char* prop, int value)
@@ -516,6 +517,7 @@ const char* VScript::GetDataString(const char* prop)
     }
 
     VScriptRaiseException("Datamap '%s' is not string or string_t.", prop);
+    return nullptr;
 }
 
 void VScript::SetDataString(const char* prop, const char* string)
@@ -676,7 +678,21 @@ void VScript::InjectCBaseEntityFunctions(ScriptClassDesc_t* pClass)
     InjectScriptFunctionToClass(pClass, GetHammerID, "Get entity hammer id.");
 
     InjectScriptFunctionToClass(pClass, SetEdictStateChanged, "Marks an entity as state changed.");
+
+    InjectScriptFunctionToClass(pClass, GetDataInt, "Peeks into an entity's object data and retrieves the integer value at the given key.");
     InjectScriptFunctionToClass(pClass, SetDataInt, "Peeks into an entity's object data and sets the integer value at the given key.");
+
+    InjectScriptFunctionToClass(pClass, GetDataFloat, "Peeks into an entity's object data and retrieves the float value at the given key.");
+    InjectScriptFunctionToClass(pClass, SetDataFloat, "Peeks into an entity's object data and sets the float value at the given key.");
+
+    InjectScriptFunctionToClass(pClass, GetDataEntity, "Peeks into an entity's object data and retrieves the entity value at the given key.");
+    InjectScriptFunctionToClass(pClass, SetDataEntity, "Peeks into an entity's object data and sets the entity value at the given key.");
+
+    InjectScriptFunctionToClass(pClass, GetDataVector, "Peeks into an entity's object data and retrieves the vector value at the given key.");
+    InjectScriptFunctionToClass(pClass, SetDataVector, "Peeks into an entity's object data and sets the vector value at the given key.");
+
+    InjectScriptFunctionToClass(pClass, GetDataString, "Peeks into an entity's object data and retrieves the string value at the given key.");
+    InjectScriptFunctionToClass(pClass, SetDataString, "Peeks into an entity's object data and sets the string value at the given key.");
 }
 
 void VScript::InjectCBasePlayerFunctions(ScriptClassDesc_t* pClass)
