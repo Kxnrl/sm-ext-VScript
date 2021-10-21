@@ -157,9 +157,7 @@ void VScript::PrintToHint(const char* message)
     IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
     if (!pPlayer || !pPlayer->IsConnected() || pPlayer->IsFakeClient() || pPlayer->IsSourceTV())
     {
-        char error[128];
-        smutils->Format(error, 128, "Player %d is invalid.", index);
-        g_pScriptVM->RaiseException(error);
+        VScriptRaiseException("Player %d is invalid.", index);
         return;
     }
     gamehelpers->HintTextMsg(index, message);
@@ -174,9 +172,7 @@ void VScript::PrintToChat(const char* message)
     IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
     if (!pPlayer || !pPlayer->IsConnected() || pPlayer->IsFakeClient() || pPlayer->IsSourceTV())
     {
-        char error[128];
-        smutils->Format(error, 128, "Player %d is invalid.", index);
-        g_pScriptVM->RaiseException(error);
+        VScriptRaiseException("Player %d is invalid.", index);
         return;
     }
     gamehelpers->TextMsg(index, HUD_PRINTTALK, message);
@@ -191,9 +187,7 @@ int VScript::GetUserID()
     IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
     if (!pPlayer || !pPlayer->IsInGame() || pPlayer->IsFakeClient())
     {
-        char error[128];
-        smutils->Format(error, 128, "Player %d is invalid.", index);
-        g_pScriptVM->RaiseException(error);
+        VScriptRaiseException("Player %d is invalid.", index);
         return -1;
     }
 
@@ -209,9 +203,7 @@ const char* VScript::GetSteamID()
     IGamePlayer* pPlayer = playerhelpers->GetGamePlayer(index);
     if (!pPlayer || !pPlayer->IsInGame() || pPlayer->IsFakeClient())
     {
-        char error[128];
-        smutils->Format(error, 128, "Player %d is invalid.", index);
-        g_pScriptVM->RaiseException(error);
+        VScriptRaiseException("Player %d is invalid.", index);
         return nullptr;
     }
 
@@ -219,6 +211,342 @@ const char* VScript::GetSteamID()
     smutils->Format(steamid, sizeof(steamid), "%" PRIu64, pPlayer->GetSteamId64());
 
     return STRING(AllocPooledString(steamid));
+}
+
+void VScript::SetEdictStateChanged()
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    auto index = gamehelpers->EntityToBCompatRef(pEntity); edict_t* pEdict;
+    if (index > 2048 || index < 0 || !(pEdict = gamehelpers->EdictOfIndex(index)))
+    {
+        VScriptRaiseException("Entity %d (%s) is not an edict.", index, gamehelpers->GetEntityClassname(pEntity));
+        return;
+    }
+
+    gamehelpers->SetEdictStateChanged(pEdict, 0);
+}
+
+int VScript::GetDataInt(const char* prop)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(0);
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return 0;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Integer)
+    {
+        VScriptRaiseException("Datamap '%s' is not integer.", prop);
+        return 0;
+    }
+
+    size /= 8;
+
+    switch (size)
+    {
+        case 4: return *(int*)((uint8_t*)pEntity + info.actual_offset);
+        case 2: return *(short*)((uint8_t*)pEntity + info.actual_offset);
+        case 1: return *((uint8_t*)pEntity + info.actual_offset);
+    }
+
+    VScriptRaiseException("Datamap '%s' -> Integer size %d is invalid.", prop, size);
+}
+
+void VScript::SetDataInt(const char* prop, int value)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Integer)
+    {
+        VScriptRaiseException("Datamap '%s' is not integer.", prop);
+        return;
+    }
+
+    size /= 8;
+
+    switch (size)
+    {
+    case 4:
+    {
+        *(int*)((uint8_t*)pEntity + info.actual_offset) = value;
+        break;
+    }
+    case 2:
+    {
+        *(short*)((uint8_t*)pEntity + info.actual_offset) = value;
+        break;
+    }
+    case 1:
+    {
+        *((uint8_t*)pEntity + info.actual_offset) = value;
+        break;
+    }
+    default:
+        VScriptRaiseException("Datamap '%s' -> Integer size %d is invalid.", prop, size);
+    }
+}
+
+float VScript::GetDataFloat(const char* prop)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(0.0f);
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return 0.0f;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Float)
+    {
+        VScriptRaiseException("Datamap '%s' is not float.", prop);
+        return 0.0f;
+    }
+
+    return *(float*)((uint8_t*)pEntity + info.actual_offset);
+}
+
+void VScript::SetDataFloat(const char* prop, float value)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Float)
+    {
+        VScriptRaiseException("Datamap '%s' is not float.", prop);
+        return;
+    }
+
+    *(float*)((uint8_t*)pEntity + info.actual_offset) = value;
+}
+
+HSCRIPT VScript::GetDataEntity(const char* prop)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(nullptr);
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return nullptr;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Entity)
+    {
+        VScriptRaiseException("Datamap '%s' is not entity.", prop);
+        return nullptr;
+    }
+
+    CBaseHandle& hndl = *(CBaseHandle*)((uint8_t*)pEntity + info.actual_offset);
+    CBaseEntity* pHandleEntity = gamehelpers->ReferenceToEntity(hndl.GetEntryIndex());
+    if (!pHandleEntity || hndl != reinterpret_cast<IHandleEntity*>(pHandleEntity)->GetRefEHandle())
+        return nullptr;
+
+    return EntityToHScript(pHandleEntity);
+}
+
+void VScript::SetDataEntity(const char* prop, HSCRIPT hScript)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Entity)
+    {
+        VScriptRaiseException("Datamap '%s' is not entity.", prop);
+        return;
+    }
+
+    CBaseEntity* pTarget = HScriptToCBaseEntity(hScript);
+
+    CBaseHandle& hndl = *(CBaseHandle*)((uint8_t*)pEntity + info.actual_offset);
+
+    if (pTarget == nullptr)
+    {
+        hndl.Set(nullptr);
+    }
+    else
+    {
+        IHandleEntity* pHandleEnt = (IHandleEntity*)pTarget;
+        hndl.Set(pHandleEnt);
+    }
+}
+
+const Vector& VScript::GetDataVector(const char* prop)
+{
+    static Vector vector;
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(vector);
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return vector;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Vector)
+    {
+        VScriptRaiseException("Datamap '%s' is not vector.", prop);
+        return vector;
+    }
+
+    Vector* v = (Vector*)((uint8_t*)pEntity + info.actual_offset);
+
+    vector.x = v->x;
+    vector.y = v->y;
+    vector.z = v->z;
+
+    return vector;
+}
+
+void VScript::SetDataVector(const char* prop, const Vector& vector)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type != PropField_Vector)
+    {
+        VScriptRaiseException("Datamap '%s' is not vector.", prop);
+        return;
+    }
+
+    Vector* v = (Vector*)((uint8_t*)pEntity + info.actual_offset);
+
+    v->x = vector.x;
+    v->y = vector.y;
+    v->z = vector.z;
+}
+
+const char* VScript::GetDataString(const char* prop)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_RET(nullptr);
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return nullptr;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+
+    static char response[256];
+    if (type == PropField_String)
+    {
+        char* dest = (char*)((uint8_t*)pEntity + info.actual_offset);
+        V_strncpy(response, dest, sizeof(response));
+        return response;
+    }
+    if (type == PropField_String_T)
+    {
+        // FIXME
+        // CSGO win has LTCG, string_t had been optimized to const char*
+#if WIN32
+        const char* dest = (char*)((uint8_t*)pEntity + info.actual_offset);
+        V_strncpy(response, dest, sizeof(response));
+#else
+        string_t dest = *(string_t*)((uint8_t*)pEntity + info.actual_offset);
+        V_strncpy(response, STRING(dest), sizeof(response));
+#endif
+        return response;
+    }
+
+    VScriptRaiseException("Datamap '%s' is not string or string_t.", prop);
+}
+
+void VScript::SetDataString(const char* prop, const char* string)
+{
+    CBaseEntity* pEntity = VSCRIPT_PTR();
+    VALIDATE_ENTITY_VOID();
+
+    sm_datatable_info_t info;
+
+    if (!gamehelpers->FindDataMapInfo(gamehelpers->GetDataMap(pEntity), prop, &info))
+    {
+        VScriptRaiseException("Failed to find datamap '%s'", prop);
+        return;
+    }
+
+    cell_t type, size;
+    GuessDataPropTypes(info.prop, &size, &type);
+    if (type == PropField_String)
+    {
+        char* dest = (char*)((uint8_t*)pEntity + info.actual_offset);
+        size_t len = strlen(string);
+        ke::SafeStrcpy(dest, len, string);
+        return;
+    }
+    if (type == PropField_String_T)
+    {
+        *(string_t*)((uint8_t*)pEntity + info.actual_offset) = AllocPooledString(string);
+        return;
+    }
+
+    VScriptRaiseException("Datamap '%s' is not string or string_t.", prop);
 }
 
 void VScript::OnCoreMapStart(edict_t* pEdictList, int edictCount, int clientMax)
@@ -346,6 +674,9 @@ void VScript::InjectCBaseEntityFunctions(ScriptClassDesc_t* pClass)
     bInjected = true;
 
     InjectScriptFunctionToClass(pClass, GetHammerID, "Get entity hammer id.");
+
+    InjectScriptFunctionToClass(pClass, SetEdictStateChanged, "Marks an entity as state changed.");
+    InjectScriptFunctionToClass(pClass, SetDataInt, "Peeks into an entity's object data and sets the integer value at the given key.");
 }
 
 void VScript::InjectCBasePlayerFunctions(ScriptClassDesc_t* pClass)

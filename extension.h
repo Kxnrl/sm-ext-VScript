@@ -39,6 +39,23 @@ public:
     void PrintToChat(const char* message);
     void PrintToHint(const char* message);
 
+    // prop/data
+    void SetEdictStateChanged();
+
+    // get
+    int GetDataInt(const char* prop);
+    float GetDataFloat(const char* prop);
+    HSCRIPT GetDataEntity(const char* prop);
+    const Vector& GetDataVector(const char* prop);
+    const char* GetDataString(const char* prop);
+
+    // set
+    void SetDataInt(const char* prop, int value);
+    void SetDataFloat(const char* prop, float value);
+    void SetDataEntity(const char* prop, HSCRIPT hEntity);
+    void SetDataVector(const char* prop, const Vector& vector);
+    void SetDataString(const char* prop, const char* string);
+
 public:
     bool m_bLoaded;
 };
@@ -50,5 +67,16 @@ public:
 
 extern sp_nativeinfo_t g_Natives[];
 extern IServerTools* servertools;
+extern IScriptVM* g_pScriptVM;
+
+inline void VScriptRaiseException(const char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char error[128];
+    smutils->FormatArgs(error, sizeof(error), fmt, ap);
+    va_end(ap);
+    g_pScriptVM->RaiseException(error);
+}
 
 #endif
