@@ -15,13 +15,17 @@ enum variant_t
 	FIELD_HSCRIPT = 33 // always use for CBaseEntity
 }
 
-native  any VScript_GetScopeValue      (int entity, const char[] key, variant_t field);
-native  int VScript_GetScopeValueString(int entity, const char[] key, char[] buffer, int maxlen);
-native bool VScript_GetScopeValueVector(int entity, const char[] key, float vVector[3]);
+// use entity -1 for global scope
 
-native  any VScript_GetGlobalValue      (const char[] key, variant_t field);
-native  int VScript_GetGlobalValueString(const char[] key, char[] buffer, int maxlen);
-native bool VScript_GetGlobalValueVector(const char[] key, float vVector[3]);
+native  any VScript_GetValue      (int entity, const char[] key, variant_t field);
+native  int VScript_GetValueString(int entity, const char[] key, char[] buffer, int maxlen);
+native bool VScript_GetValueVector(int entity, const char[] key, float vVector[3]);
+
+native bool VScript_SetValue      (int entity, const char[] key, variant_t field, any value);
+native bool VScript_SetValueString(int entity, const char[] key, const char[] value);
+native bool VScript_SetValueVector(int entity, const char[] key, const float vVector[3]);
+
+native bool VScript_ClearValue(int entity, const char[] key);
 
 public Extension __ext_VScript =
 {
