@@ -5,6 +5,7 @@ projectName = 'VScript'
 
 # smsdk_ext.cpp will be automatically added later
 sourceFiles = [
+  'utils.cpp',
   'extension.cpp',
 ]
 

@@ -1,5 +1,5 @@
 ## VScript  
-Provide vscript variables api for sourcemod, Provide sourcemod api for vscript.
+Provide vscript variables api to sourcemod, Provide sourcemod api to vscript.
 
 state: W.I.P
 
@@ -12,3 +12,7 @@ try {
     return;
 }
 ```
+
+### Todo
+- Add 'SetProp', 'SetData' to VScript
+- Add 'Trace*' functions to VScript

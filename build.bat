@@ -42,8 +42,6 @@ popd
 
 echo "Download hl2sdk-csgo"
 git clone https://github.com/alliedmodders/hl2sdk --recursive --branch csgo --single-branch hl2sdk-csgo
-echo "Download hl2sdk-insurgency"
-git clone https://github.com/alliedmodders/hl2sdk --recursive --branch insurgency --single-branch hl2sdk-insurgency
 
 :: Start build
 
@@ -52,6 +50,6 @@ cd %EXT_DIR%
 
 mkdir build
 pushd build
-python "%EXT_DIR%/configure.py" --enable-optimize --sm-path "%SOURCEMOD%" --mms-path "%METAMOD%" --hl2sdk-root "%DEP_DIR%" --sdks=csgo,insurgency
-ambuild || exit /b %errorlevel%
+python "%EXT_DIR%/configure.py" --enable-optimize --sm-path "%SOURCEMOD%" --mms-path "%METAMOD%" --hl2sdk-root "%DEP_DIR%" --sdks=csgo
+ambuild
 popd

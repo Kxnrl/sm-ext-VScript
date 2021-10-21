@@ -381,6 +381,9 @@ void VScript::InitRoutines(const char* func)
 
 static cell_t Native_GetValue(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -438,6 +441,9 @@ static cell_t Native_GetValue(IPluginContext* pContext, const cell_t* params)
 
 static cell_t Native_GetValueString(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -479,6 +485,9 @@ static cell_t Native_GetValueString(IPluginContext* pContext, const cell_t* para
 
 static cell_t Native_GetValueVector(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -526,6 +535,9 @@ static cell_t Native_GetValueVector(IPluginContext* pContext, const cell_t* para
 
 static cell_t Native_SetValue(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -600,6 +612,9 @@ static cell_t Native_SetValue(IPluginContext* pContext, const cell_t* params)
 
 static cell_t Native_SetValueString(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -638,6 +653,9 @@ static cell_t Native_SetValueString(IPluginContext* pContext, const cell_t* para
 
 static cell_t Native_SetValueVector(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)
@@ -676,6 +694,9 @@ static cell_t Native_SetValueVector(IPluginContext* pContext, const cell_t* para
 
 static cell_t Native_ClearValue(IPluginContext* pContext, const cell_t* params)
 {
+    if (!g_Extension.m_bLoaded)
+        return pContext->ThrowNativeError("You can not call native before map started!");
+
     void* hScript = nullptr;
 
     if (params[1] != -1)

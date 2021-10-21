@@ -5,49 +5,55 @@
 
 enum variant_t
 {
-	FIELD_VOID,
-	FIELD_FLOAT,
-	FIELD_STRING,
-	FIELD_VECTOR,
-	FIELD_INTEGER = 5,
-	FIELD_BOOLEAN,
-	FIELD_CHARACTER = 8,
-	FIELD_HSCRIPT = 33 // always use for CBaseEntity
+    FIELD_VOID,
+    FIELD_FLOAT,
+    FIELD_STRING,
+    FIELD_VECTOR,
+    FIELD_INTEGER = 5,
+    FIELD_BOOLEAN,
+    FIELD_CHARACTER = 8,
+    FIELD_HSCRIPT = 33 // always use for CBaseEntity
 }
 
-native  any VScript_GetScopeValue      (int entity, const char[] key, variant_t field);
-native  int VScript_GetScopeValueString(int entity, const char[] key, char[] buffer, int maxlen);
-native bool VScript_GetScopeValueVector(int entity, const char[] key, float vVector[3]);
+// use entity -1 for global scope
 
-native  any VScript_GetGlobalValue      (const char[] key, variant_t field);
-native  int VScript_GetGlobalValueString(const char[] key, char[] buffer, int maxlen);
-native bool VScript_GetGlobalValueVector(const char[] key, float vVector[3]);
+native  any VScript_GetValue      (int entity, const char[] key, variant_t field);
+native  int VScript_GetValueString(int entity, const char[] key, char[] buffer, int maxlen);
+native bool VScript_GetValueVector(int entity, const char[] key, float vVector[3]);
+
+native bool VScript_SetValue      (int entity, const char[] key, variant_t field, any value);
+native bool VScript_SetValueString(int entity, const char[] key, const char[] value);
+native bool VScript_SetValueVector(int entity, const char[] key, const float vVector[3]);
+
+native bool VScript_ClearValue(int entity, const char[] key);
 
 public Extension __ext_VScript =
 {
-	name = "VScript",
-	file = "VScript.ext",
+    name = "VScript",
+    file = "VScript.ext",
 #if defined AUTOLOAD_EXTENSIONS
-	autoload = 1,
+    autoload = 1,
 #else
-	autoload = 0,
+    autoload = 0,
 #endif
 #if defined REQUIRE_EXTENSIONS
-	required = 1,
+    required = 1,
 #else
-	required = 0,
+    required = 0,
 #endif
 };
 
 #if !defined REQUIRE_EXTENSIONS
 public void __ext_VScript_SetNTVOptional()
 {
-    MarkNativeAsOptional("VScript_GetScopeValue");
-    MarkNativeAsOptional("VScript_GetScopeValueString");
-    MarkNativeAsOptional("VScript_GetScopeValueVector");
+    MarkNativeAsOptional("VScript_GetValue");
+    MarkNativeAsOptional("VScript_GetValueString");
+    MarkNativeAsOptional("VScript_GetValueVector");
 
-	MarkNativeAsOptional("VScript_GetGlobalValue");
-    MarkNativeAsOptional("VScript_GetGlobalValueString");
-    MarkNativeAsOptional("VScript_GetGlobalValueVector");
+    MarkNativeAsOptional("VScript_SetValue");
+    MarkNativeAsOptional("VScript_SetValueString");
+    MarkNativeAsOptional("VScript_SetValueVector");
+
+    MarkNativeAsOptional("VScript_ClearValue");
 }
 #endif
