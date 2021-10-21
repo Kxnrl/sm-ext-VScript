@@ -21,7 +21,12 @@ jobs:
   - name: Linux
     dist: bionic
     python: 3.7
+    addons:
+      apt:
+        packages: ['clang-10']
     env:
+      - CC=clang
+      - CXX=clang++
       - SMBRANCH=1.10-dev
       - MMBRANCH=1.11-dev
     before_script:
