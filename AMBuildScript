@@ -200,7 +200,15 @@ class ExtensionConfig(object):
       cxx.cflags += ['-Wno-unused-result']
 
     if have_clang:
-      cxx.cxxflags += ['-Wno-implicit-exception-spec-mismatch']
+      cxx.cxxflags += [
+        '-Wno-implicit-exception-spec-mismatch', 
+        '-Wno-implicit-int-float-conversion', 
+        '-Wno-expansion-to-defined',
+        '-Wno-reorder-ctor',
+        '-Wno-writable-strings',
+        '-Wno-null-dereference',
+        '-Wno-enum-compare-switch'
+        ]
       if cxx.version >= 'apple-clang-5.1' or cxx.version >= 'clang-3.4':
         cxx.cxxflags += ['-Wno-deprecated-register']
       else:

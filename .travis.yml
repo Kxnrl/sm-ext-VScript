@@ -1,9 +1,6 @@
 language: cpp
 
 jobs:
-  fast_finish: true
-  allow_failures:
-  - name: Linux
   include:
   - name: Windows
     os: windows
@@ -21,7 +18,17 @@ jobs:
   - name: Linux
     dist: bionic
     python: 3.7
+    compiler: clang
+    addons:
+      apt:
+        sources:
+          - sourceline: 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main'
+            key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+        packages:
+          - clang-10
     env:
+      - CC=clang-10
+      - CXX=clang++-10
       - SMBRANCH=1.10-dev
       - MMBRANCH=1.11-dev
     before_script:
