@@ -25,9 +25,10 @@ jobs:
     addons:
       apt:
         sources:
+          - llvm-toolchain-focal
           - ubuntu-toolchain-r-test
         packages:
-          - clang-10.0
+          - clang-10
     env:
       - CC=clang-10
       - CXX=clang++-10
