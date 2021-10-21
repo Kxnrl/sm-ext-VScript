@@ -32,7 +32,10 @@ for sdk_name in Extension.sdks:
     binary.compiler.postlink += [ 'legacy_stdio_definitions.lib' ]
   elif sys.platform == 'linux' or sys.platform == 'linux2':
     binary.compiler.cxxflags += [ '-std=c++14' ]
-    binary.compiler.cxxflags += [ '-Wno-class-memaccess' ]
+    # cxx = builder.DetectCxx()
+    # if cxx.version >= 'gcc-9.0':
+      # binary.compiler.cxxflags += [ '-Wno-class-memaccess' ]
+    # binary.compiler.cxxflags += [ '-Wno-class-memaccess' ]
     binary.compiler.cxxflags += [ '-include', 'mathlib/mathlib.h' ]
 
 Extension.extensions = builder.Add(project)
