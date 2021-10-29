@@ -56,8 +56,28 @@ void VScript::Hook_OnRegisterFunction(ScriptFunctionBinding_t* pFunction)
     RETURN_META(MRES_IGNORED);
 }
 
+void CheckAllocRecursion(ScriptClassDesc_t* pClass)
+{
+    Assert(pClass);
+
+    // FIXME
+    // 128 is hardcoded value
+    // we should find a way to use auto-size.
+    pClass->m_FunctionBindings.SetGrowSize(1);
+    pClass->m_FunctionBindings.EnsureCapacity(128);
+
+    if (pClass->m_pBaseDesc != nullptr)
+    {
+        CheckAllocRecursion(pClass->m_pBaseDesc);
+    }
+}
+
 bool VScript::Hook_OnRegisterClass(ScriptClassDesc_t* pClass)
 {
+    // FIXME
+    // Increase valve memory size
+    CheckAllocRecursion(pClass);
+
     if (strcmp(pClass->m_pszClassname, "CBaseEntity") == 0)
     {
         g_pCBaseEntity = pClass;
@@ -73,7 +93,7 @@ bool VScript::Hook_OnRegisterClass(ScriptClassDesc_t* pClass)
 #ifdef DEBUG
     bool ret = META_RESULT_ORIG_RET(bool);
 
-    smutils->LogMessage(myself, "g_pScriptVM->RegisterClass(%s, %s) -> %s", pClass->m_pszClassname, pClass->m_pszScriptName, ret ? "true" : "false");
+    smutils->LogMessage(myself, "g_pScriptVM->RegisterClass(%s, %s) -> %s -> functions(%d) -> Allocated(%d)", pClass->m_pszClassname, pClass->m_pszScriptName, ret ? "true" : "false", pClass->m_FunctionBindings.Count(), pClass->m_FunctionBindings.NumAllocated());
     FOR_EACH_VEC(pClass->m_FunctionBindings, it)
     {
         smutils->LogMessage(myself, "\t\t\t  m_flags=[%d] m_pszScriptName=[%s] m_pszFunction=[%s], m_pszDescription=[%s], m_Parameters=[%d]",

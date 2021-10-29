@@ -10,6 +10,7 @@ folder_list = [
   'addons/sourcemod/extensions',
   'addons/sourcemod/scripting/include',
   'addons/sourcemod/gamedata',
+  'scripts/vscripts'
 ]
 
 # Create the distribution folder hierarchy.
@@ -35,6 +36,11 @@ CopyFiles('.', 'addons/sourcemod/scripting/include',
 # GameData files
 CopyFiles('.', 'addons/sourcemod/gamedata',
   [ 'vscript.games.txt', ]
+)
+
+# VScript files
+CopyFiles('.', 'scripts/vscripts',
+  [ 'vscript.nut', ]
 )
 
 # Copy binaries.

@@ -1,7 +1,7 @@
 ## VScript  
 Provide vscript variables api to sourcemod, Provide sourcemod api to vscript.
 
-state: W.I.P
+state: W.I.P,  **Very** unstable
 
 ### You can check the runtime environment in vscript
 ```squirrel
