@@ -25,7 +25,7 @@ jobs:
     script:
       - ./build.bat
     after_success:
-      - 7z a VScript-Windows.zip -tzip -mx9 %TRAVIS_BUILD_DIR%\build\package\*
+      - 7z a VScript-Windows.zip -tzip -mx9 build\package\*
   - name: Linux
     dist: bionic
     python: 3.8
@@ -48,12 +48,12 @@ jobs:
     script:
       - ./build.sh
     after_success:
-      - 7z a VScript-Linux.zip -tzip -mx9 $TRAVIS_BUILD_DIR/build/package/* >nul
+      - 7z a VScript-Linux.zip -tzip -mx9 build/package/* >nul
 
 before_deploy:
   - git config --local user.name "Kxnrl"
   - git config --local user.email "kyle@kxnrl.com"
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then export TRAVIS_TAG=release-$TRAVIS_OS_NAME-$TRAVIS_BUILD_NUMBER ; fi
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then export TRAVIS_TAG=release-$TRAVIS_BUILD_NUMBER ; fi
   - git tag $TRAVIS_TAG
 
 deploy:
