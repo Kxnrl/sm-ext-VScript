@@ -1,10 +1,18 @@
 language: cpp
 
+branches:
+  only:
+  - master
+  - stable
+  except:
+  - /^(?i:release)-.*$/
+  - /^(?i:stable)-.*$/
+
 jobs:
   include:
   - name: Windows
     os: windows
-    python: 3.7
+    python: 3.8
     before_install:
       - choco install python --version=3.8.2
       - export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
@@ -13,11 +21,16 @@ jobs:
       - MMBRANCH=1.11-dev
     before_script:
       - choco install -y visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+      - choco install -y 7zip.install
     script:
       - ./build.bat
+    after_success:
+      - dir
+      - cd package
+      - 7z a VScript-Windows.zip -tzip -mx9 addons scripts
   - name: Linux
     dist: bionic
-    python: 3.7
+    python: 3.8
     compiler: clang
     addons:
       apt:
@@ -26,6 +39,7 @@ jobs:
             key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
         packages:
           - clang-10
+          - p7zip-full
     env:
       - CC=clang-10
       - CXX=clang++-10
@@ -35,3 +49,24 @@ jobs:
       - chmod +x ./build.sh
     script:
       - ./build.sh
+    after_success:
+      - ls -l
+      - cd package
+      - 7z a VScript-Linux.zip -tzip -mx9 addons scripts >nul
+
+before_deploy:
+  - git config --local user.name "Kxnrl"
+  - git config --local user.email "kyle@kxnrl.com"
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then export TRAVIS_TAG=release-$TRAVIS_BUILD_NUMBER ; fi
+  - git tag $TRAVIS_TAG
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key: $token
+  file:
+    - VScript-Linux.zip
+    - VScript-Windows.zip
+  on:
+    repo: Kxnrl/sm-ext-VScript
+    all_branches: true
