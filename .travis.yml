@@ -25,7 +25,9 @@ jobs:
     script:
       - ./build.bat
     after_success:
-      - 7z a VScript-Windows.zip -tzip -mx9 build\package\*
+      - dir
+      - cd package
+      - 7z a VScript-Windows.zip -tzip -mx9 addons scripts
   - name: Linux
     dist: bionic
     python: 3.8
@@ -48,7 +50,9 @@ jobs:
     script:
       - ./build.sh
     after_success:
-      - 7z a VScript-Linux.zip -tzip -mx9 build/package/* >nul
+      - ls -l
+      - cd package
+      - 7z a VScript-Linux.zip -tzip -mx9 addons scripts >nul
 
 before_deploy:
   - git config --local user.name "Kxnrl"
