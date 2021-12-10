@@ -26,5 +26,4 @@ pushd "$EXT_DIR/build"
 export CC=clang-10;export CXX=clang++-10;
 python "$EXT_DIR/configure.py" --enable-optimize --sm-path "$EXT_DIR/sourcemod" --mms-path "$EXT_DIR/metamod" --hl2sdk-root "$EXT_DIR" --sdks=csgo
 ambuild
-# Don't pop it because we need to pack them up
-#popd
+popd
