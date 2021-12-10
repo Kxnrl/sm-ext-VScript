@@ -24,7 +24,7 @@ jobs:
       - choco install -y 7zip.install
     script:
       - ./build.bat
-    after_script:
+    after_success:
       - 7z a VScript-Windows.zip -tzip -mx9 %TRAVIS_BUILD_DIR%\build\package\*
   - name: Linux
     dist: bionic
@@ -47,7 +47,7 @@ jobs:
       - chmod +x ./build.sh
     script:
       - ./build.sh
-    after_script:
+    after_success:
       - 7z a VScript-Linux.zip -tzip -mx9 $TRAVIS_BUILD_DIR/build/package/* >nul
 
 before_deploy:
