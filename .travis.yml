@@ -26,6 +26,7 @@ jobs:
       - ./build.bat
     after_success:
       - dir
+      - cd build
       - cd package
       - 7z a VScript-Windows.zip -tzip -mx9 addons scripts
   - name: Linux
@@ -51,6 +52,7 @@ jobs:
       - ./build.sh
     after_success:
       - ls -l
+      - cd build
       - cd package
       - 7z a VScript-Linux.zip -tzip -mx9 addons scripts >nul
 
