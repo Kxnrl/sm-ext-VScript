@@ -52,4 +52,5 @@ mkdir build
 pushd build
 python "%EXT_DIR%/configure.py" --enable-optimize --sm-path "%SOURCEMOD%" --mms-path "%METAMOD%" --hl2sdk-root "%DEP_DIR%" --sdks=csgo
 ambuild
-popd
+:: check linux ver build
+:: popd
