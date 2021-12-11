@@ -5,3 +5,6 @@ include(configure.cmake)
 include(amsdk-cmake/Initialize.cmake)
 
 add_subdirectory(src)
+
+# After project!
+include(install.cmake)
