@@ -1,6 +1,6 @@
 #include "extension.h"
 #include "ivscript_hack.h"
-#include "itoolentity.h"
+#include <toolframework/itoolentity.h>
 #include "utils.h"
 
 #define DBGFLAG_ASSERT
@@ -273,9 +273,9 @@ int VScript::GetDataInt(const char* prop)
 
     switch (size)
     {
-        case 4: return *(int*)((uint8_t*)pEntity + info.actual_offset);
-        case 2: return *(short*)((uint8_t*)pEntity + info.actual_offset);
-        case 1: return *((uint8_t*)pEntity + info.actual_offset);
+    case 4: return *(int*)((uint8_t*)pEntity + info.actual_offset);
+    case 2: return *(short*)((uint8_t*)pEntity + info.actual_offset);
+    case 1: return *((uint8_t*)pEntity + info.actual_offset);
     }
 
     VScriptRaiseException("Datamap '%s' -> Integer size %d is invalid.", prop, size);
@@ -656,7 +656,7 @@ bool VScript::SDK_OnMetamodLoad(ISmmAPI* ismm, char* error, size_t maxlen, bool 
     IScriptVM* vm = sm->CreateVM();
     Assert(vm);
     g_RegFuntions = SH_ADD_VPHOOK(IScriptVM, RegisterFunction, vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterFunction), false);
-    g_RegVClasses = SH_ADD_VPHOOK(IScriptVM, RegisterClass,    vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterClass),    false);
+    g_RegVClasses = SH_ADD_VPHOOK(IScriptVM, RegisterClass, vm, SH_MEMBER(&g_Extension, &VScript::Hook_OnRegisterClass), false);
     sm->DestroyVM(vm);
 
 #ifdef DEBUG
@@ -929,7 +929,7 @@ static cell_t Native_SetValue(IPluginContext* pContext, const cell_t* params)
     char* key;
     pContext->LocalToString(params[2], &key);
 
-    
+
 
     _fieldtypes type = (_fieldtypes)params[3];
 
