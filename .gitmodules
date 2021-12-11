@@ -1,0 +1,3 @@
+[submodule "amsdk-cmake"]
+	path = amsdk-cmake
+	url = git@github.com:laper32/amsdk-cmake.git

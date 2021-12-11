@@ -2,7 +2,7 @@
 #define _INCLUDE_SOURCEMOD_EXTENSION_PROPER_H_
 
 #include "ivscript_hack.h"
-#include "itoolentity.h"
+#include <toolframework/itoolentity.h>
 #include "smsdk_ext.h"
 
 class VScript : public SDKExtension
