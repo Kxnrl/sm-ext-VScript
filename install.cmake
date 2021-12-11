@@ -4,6 +4,10 @@ if (WIN32)
 	install(TARGETS VScript
 		RUNTIME DESTINATION addons/sourcemod/extensions
 	)
+else()
+	install(TARGETS VScript
+		LIBRARY DESTINATION addons/sourcemod/extensions
+	)
 endif()
 
 # SM gamedata
